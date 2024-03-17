@@ -2,9 +2,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Student {
-    private List<Integer> assignedJobs; // Stores indices of jobs assigned to this student
-    private double totalWorkingTime; // Total time spent on jobs and driving
-    private double totalProfit; // Total profit from jobs assigned to this student
+    private List<Integer> assignedJobs; 
+    private double totalWorkingTime; 
+    private double totalProfit;
 
     public Student() {
         this.assignedJobs = new ArrayList<>();
@@ -12,24 +12,31 @@ public class Student {
         this.totalProfit = 0;
     }
 
-    // Assign a job to this student
-    public void assignJob(int jobIndex, double jobTime, double jobProfit) {
-        assignedJobs.add(jobIndex);
+    public void assignJob(int jobNode, double jobTime, double jobProfit) {
+        assignedJobs.add(jobNode);
         totalWorkingTime += jobTime;
         totalProfit += jobProfit;
     }
 
-    public void removeJob(int jobIndex, double jobTime, double jobProfit) {
-        // Check if the job exists in the list
-        if(assignedJobs.contains(jobIndex)) {
-            assignedJobs.remove(Integer.valueOf(jobIndex)); // Remove the job by its Integer value (not index)
-            totalWorkingTime -= jobTime; // Subtract the job's time from the total
-            totalProfit -= jobProfit; // Subtract the job's profit from the total
+    public void stopWork() {
+        assignedJobs.add(0);
+        totalWorkingTime = 0;
+    }
+
+    public void removeJob(int jobNode, double jobTime, double jobProfit) {
+        if(assignedJobs.contains(jobNode)) {
+            assignedJobs.remove(Integer.valueOf(jobNode));
+            totalWorkingTime -= jobTime; 
+            totalProfit -= jobProfit; 
         }
     }
 
+    public void removeAllJobs() {
+        assignedJobs.clear(); // Clears the list of assigned jobs
+        totalWorkingTime = 0; // Resets the total working time
+        totalProfit = 0; // Resets the total profit
+    }
 
-    // Getters and Setters
     public List<Integer> getAssignedJobs() {
         return assignedJobs;
     }
@@ -40,6 +47,20 @@ public class Student {
 
     public double getTotalProfit() {
         return totalProfit;
+    }
+
+    public int getLastJobNode(int[][] ordersData) {
+        // Check if there are any jobs assigned
+        if (!assignedJobs.isEmpty()) {
+            // Return the node of the last job
+            // Assuming the jobNode is stored or can be inferred from the last element of assignedJobs
+            // For example, if assignedJobs stores job indices, and you need to fetch the node from those indices
+            // You might need additional logic here to return the actual node ID based on your data structure
+            return assignedJobs.get(assignedJobs.size() - 1); // Corrected to size() - 1
+        } else {
+            // Return a default value or handle the case where there are no jobs
+            return 0; // Example default value, adjust as necessary
+        }
     }
 
     
