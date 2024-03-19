@@ -1,15 +1,24 @@
-public class Order {
-    String orderId;
-    double profit;
-    int duration;
-    int nodeId;
-    // Assuming the rest of the columns are indicators for which student can handle this order.
-    // You can adjust this class to include more fields or handle it differently based on your requirements.
+import java.util.List;
 
-    public Order(String orderId, double profit, int duration, int nodeId) {
-        this.orderId = orderId;
-        this.profit = profit;
+public class Order {
+    private int orderID;
+    private int nodeID;
+    private int duration; // in seconds
+    private int profit; // Assuming profit is stored as an integer
+    private List<Integer> allowedStudents; // List of student IDs allowed to take this order
+
+    public Order(int orderID, int nodeID, int duration, int profit, List<Integer> allowedStudents) {
+        this.orderID = orderID;
+        this.nodeID = nodeID;
         this.duration = duration;
-        this.nodeId = nodeId;
+        this.profit = profit;
+        this.allowedStudents = allowedStudents;
     }
+
+    // Getters and possibly setters as needed
+    public int getOrderID() { return orderID; }
+    public int getNodeID() { return nodeID; }
+    public int getDuration() { return duration; }
+    public int getProfit() { return profit; }
+    public List<Integer> getAllowedStudents() { return allowedStudents; }
 }
