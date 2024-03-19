@@ -1,7 +1,10 @@
 import java.util.Random;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
 
 
 public class SimulatedAnnealing {
@@ -24,6 +27,12 @@ public class SimulatedAnnealing {
         // Display the final best profit
         int finalProfit = currentProfit(students, orders);
         System.out.println("Final best profit: " + finalProfit);
+
+        try {
+            writeOutput(students, "output.txt");
+        } catch (IOException e) {
+            System.out.println("An error occurred while writing to the file: " + e.getMessage());
+        }
     }
 
     public static Student[] initializeStudents(int[][] drivingTimes, HashMap<Integer, Order> orders) {
@@ -149,15 +158,32 @@ public class SimulatedAnnealing {
     return newStudents;
 }
 
-private static void recalculateWorkingTime(Student student, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-    int totalWorkingTime = 0;
-    for (int orderID : student.getAssignedOrderIDs()) {
-        Order order = orders.get(orderID);
-        int driveTimeTo = drivingTimes[251][order.getNodeID()];
-        int driveTimeBack = drivingTimes[order.getNodeID()][251];
-        totalWorkingTime += order.getDuration() + driveTimeTo + driveTimeBack;
+    private static void recalculateWorkingTime(Student student, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        int totalWorkingTime = 0;
+        for (int orderID : student.getAssignedOrderIDs()) {
+            Order order = orders.get(orderID);
+            int driveTimeTo = drivingTimes[251][order.getNodeID()];
+            int driveTimeBack = drivingTimes[order.getNodeID()][251];
+            totalWorkingTime += order.getDuration() + driveTimeTo + driveTimeBack;
+        }
+        student.setTotalWorkingTime(totalWorkingTime);
     }
-    student.setTotalWorkingTime(totalWorkingTime);
-}
-    
+
+    private static void writeOutput(Student[] students, String filename) throws IOException {
+            try (PrintWriter writer = new PrintWriter(filename, "UTF-8")) {
+                int netProfit = currentProfit(students, DataReader.readOrdersFile());
+                writer.println(netProfit);
+
+                for (Student student : students) {
+                    // Write the number of customers (orders) served by the student
+                    List<Integer> orders = student.getAssignedOrderIDs();
+                    writer.println(orders.size());
+
+                    // Write the order IDs handled by the student
+                    for (int orderId : orders) {
+                        writer.println(orderId);
+                    }
+                }
+            }
+        }
 }

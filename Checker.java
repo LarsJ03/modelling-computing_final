@@ -23,10 +23,10 @@ public class Checker {
       reader.nextLine(); // Skip the first line with the header
       for(int i = 0; i < 1177; i++) {
          String[] orderData = reader.nextLine().split("\t");
-         orderID[i] = Integer.parseInt(orderData[0].trim());
-         nodeID[i] = Integer.parseInt(orderData[2].trim());
-         duration[i] = Integer.parseInt(orderData[5].trim()) * 60; // Convert to seconds
-         profit[i] = Integer.parseInt(orderData[6].trim()) * 60; // Also multiplied by 60, this way one unit of profit is equal to one unit (second) of time, since one second is worth 1/60 euro
+         orderID[i] = Integer.parseInt(orderData[0]);
+         nodeID[i] = Integer.parseInt(orderData[2]);
+         duration[i] = Integer.parseInt(orderData[5]) * 60; // Convert to seconds
+         profit[i] = Integer.parseInt(orderData[6]) * 60; // Also multiplied by 60, this way one unit of profit is equal to one unit (second) of time, since one second is worth 1/60 euro
         
         orderLookup.put(orderID[i], i);
         
