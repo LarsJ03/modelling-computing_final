@@ -2,41 +2,70 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Student {
-    private List<Integer> assignedJobs; 
-    private double totalWorkingTime; 
+    private int id; 
+    private List<Integer> assignedJobs;
+    private List<Double> timeRequired; 
+    private double totalWorkingTime;
     private double totalProfit;
 
-    public Student() {
+    public Student(int id) {
+        this.id = id;
         this.assignedJobs = new ArrayList<>();
+        this.timeRequired = new ArrayList<>(); 
         this.totalWorkingTime = 0;
         this.totalProfit = 0;
     }
 
+    public int getId() {
+        return id;
+    }
+
     public void assignJob(int jobNode, double jobTime, double jobProfit) {
         assignedJobs.add(jobNode);
+        timeRequired.add(jobTime); // Add jobTime to timeRequired list
         totalWorkingTime += jobTime;
         totalProfit += jobProfit;
     }
 
-    public void stopWork() {
-        assignedJobs.add(0);
-        totalWorkingTime = 0;
-    }
-
     public void removeJob(int jobNode, double jobTime, double jobProfit) {
-        if(assignedJobs.contains(jobNode)) {
-            assignedJobs.remove(Integer.valueOf(jobNode));
+        int index = assignedJobs.indexOf(jobNode);
+        if(index != -1) {
+            assignedJobs.remove(index);
+            timeRequired.remove(index); // Remove the corresponding time
             totalWorkingTime -= jobTime; 
             totalProfit -= jobProfit; 
         }
     }
 
     public void removeAllJobs() {
-        assignedJobs.clear(); // Clears the list of assigned jobs
-        totalWorkingTime = 0; // Resets the total working time
-        totalProfit = 0; // Resets the total profit
+        assignedJobs.clear();
+        timeRequired.clear(); // Clear the timeRequired list
+        totalWorkingTime = 0;
+        totalProfit = 0;
     }
 
+    public void stopWork() {
+        assignedJobs.add(0); 
+    }
+
+    public void removeLongestJob() {
+        if(timeRequired.isEmpty()) {
+            return;
+        }
+        double longestTime = -1;
+        int longestJobIndex = -1;
+        for(int i = 0; i < timeRequired.size(); i++) {
+            if(timeRequired.get(i) > longestTime) {
+                longestTime = timeRequired.get(i);
+                longestJobIndex = i;
+            }
+        }
+        if(longestJobIndex != -1) {
+            assignedJobs.remove(longestJobIndex);
+            totalWorkingTime -= timeRequired.get(longestJobIndex);
+            timeRequired.remove(longestJobIndex);
+        }
+    }
     public List<Integer> getAssignedJobs() {
         return assignedJobs;
     }
@@ -62,6 +91,8 @@ public class Student {
             return 0; // Example default value, adjust as necessary
         }
     }
+
+    
 
     
 }
