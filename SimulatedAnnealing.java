@@ -22,7 +22,15 @@ public class SimulatedAnnealing {
         Student[] students = initializeStudents(drivingTimes, orders);
 
         // Perform simulated annealing to optimize the assignments
+        long startTime = System.currentTimeMillis(); // Start time
+
         simulatedAnnealing(students, orders, drivingTimes);
+
+        long endTime = System.currentTimeMillis(); // End time
+        long duration = endTime - startTime; // Calculate duration
+
+        System.out.println("Simulated annealing completed in " + duration + " ms.");
+
 
         // Display the final best profit
         int finalProfit = currentProfit(students, orders);
@@ -59,7 +67,7 @@ public class SimulatedAnnealing {
 
     public static void simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
         double temperature = 10000; // Starting temperature
-        double coolingRate = 0.003; // Cooling rate
+        double coolingRate = 0.000001; // Cooling rate
         int bestProfit = currentProfit(students, orders);
         System.out.println("start profit = " + bestProfit);
 
@@ -75,11 +83,12 @@ public class SimulatedAnnealing {
             if (acceptanceProbability(currentProfit, newProfit, temperature) > Math.random()) {
                 students = newStudents; // Accept new solution
                 if (newProfit > bestProfit) {
+                    System.out.println("New best profit: " + newProfit);
                     bestProfit = newProfit; // Update best profit
                 }
             }
-            if (counter % 100 == 0) {
-                System.out.println("Current profit: " + currentProfit);
+            if (counter % 1000 == 0) {
+                System.out.println("Current profit: " + currentProfit + " | Best profit: " + bestProfit + " | Temperature: " + temperature + " | Counter: " + counter);
             }
             // Cool system
             temperature *= 1 - coolingRate;
@@ -114,7 +123,6 @@ public class SimulatedAnnealing {
     }
 
     public static Student[] alterAssignments(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-    System.out.println("started");
     Random rand = new Random();
     // Deep copy the students array to avoid altering the original assignments
     Student[] newStudents = new Student[students.length];
@@ -144,7 +152,6 @@ public class SimulatedAnnealing {
         // Check if swap is allowed
         if (orders.get(orderID1).getAllowedStudents().contains(student2.getId()) &&
             orders.get(orderID2).getAllowedStudents().contains(student1.getId())) {
-            System.out.println("swapping");
             // Perform swap
             student1.getAssignedOrderIDs().set(orderIndex1, orderID2);
             student2.getAssignedOrderIDs().set(orderIndex2, orderID1);
