@@ -1,5 +1,6 @@
 import java.util.List;
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Student {
     private int id;
@@ -48,5 +49,27 @@ public class Student {
     // Getter for the list of assigned order IDs
     public List<Integer> getAssignedOrderIDs() {
         return assignedOrderIDs;
+    }
+
+    public void addOrder(int orderId, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        Order order = orders.get(orderId);
+        int driveTimeTo = drivingTimes[251][order.getNodeID()];
+        int driveTimeBack = drivingTimes[order.getNodeID()][251];
+        int totalDriveTime = driveTimeTo + driveTimeBack + order.getDuration();
+
+        if ((this.totalWorkingTime + totalDriveTime <= 8 * 60 * 60)) { // Check if within 8-hour workday limit
+            this.assignedOrderIDs.add(orderId);
+            this.totalWorkingTime += totalDriveTime;
+        }
+    }
+    
+    public void removeOrder(int orderId, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        Order order = orders.get(orderId);
+        int driveTimeTo = drivingTimes[251][order.getNodeID()];
+        int driveTimeBack = drivingTimes[order.getNodeID()][251];
+        int totalDriveTime = driveTimeTo + driveTimeBack + order.getDuration();
+
+        this.assignedOrderIDs.remove(Integer.valueOf(orderId)); // Remove the order ID from the list
+        this.totalWorkingTime -= totalDriveTime; // Subtract the time taken to complete the order
     }
 }

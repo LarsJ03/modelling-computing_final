@@ -9,7 +9,7 @@ public class DataReader {
     public static int[][] readDrivingTimesFile() throws FileNotFoundException {
         // Parse driving times
         Scanner reader = new Scanner(new File("drivingtimes.txt"));
-        int[][] drivingTime = new int[1099][1099]; // Driving times in seconds
+        int[][] drivingTime = new int[1099][1099]; 
         for(int i = 0; i < 1099; i++)
            for(int j = 0; j < 1099; j++)
               drivingTime[i][j] = reader.nextInt();

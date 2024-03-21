@@ -1,5 +1,8 @@
 import java.util.Random;
+import java.util.stream.Collectors;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.io.FileNotFoundException;
@@ -24,7 +27,7 @@ public class SimulatedAnnealing {
         // Perform simulated annealing to optimize the assignments
         long startTime = System.currentTimeMillis(); // Start time
 
-        simulatedAnnealing(students, orders, drivingTimes);
+        Student[] final_students = simulatedAnnealing(students, orders, drivingTimes);
 
         long endTime = System.currentTimeMillis(); // End time
         long duration = endTime - startTime; // Calculate duration
@@ -33,11 +36,11 @@ public class SimulatedAnnealing {
 
 
         // Display the final best profit
-        int finalProfit = currentProfit(students, orders);
+        int finalProfit = currentProfit(final_students, orders);
         System.out.println("Final best profit: " + finalProfit);
 
         try {
-            writeOutput(students, "output.txt");
+            writeOutput(final_students, "output.txt");
         } catch (IOException e) {
             System.out.println("An error occurred while writing to the file: " + e.getMessage());
         }
@@ -65,20 +68,28 @@ public class SimulatedAnnealing {
         return students;
     }
 
-    public static void simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        double temperature = 10000; // Starting temperature
+    public static Student[] simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        double temperature = 10000000; // Starting temperature
         double coolingRate = 0.000001; // Cooling rate
         int bestProfit = currentProfit(students, orders);
         System.out.println("start profit = " + bestProfit);
 
         int counter = 0;
         while (temperature > 1) {
+            
+            Student[] newStudents = students;
             // Create a new neighbor solution by slightly altering the current solution
-            Student[] newStudents = alterAssignments(students, orders, drivingTimes);
-    
+            if (counter % 10 == 0) {
+                newStudents = alterAssignments(students, orders, drivingTimes);
+            } else if (counter % 5 == 0) {
+                newStudents = removeAndReassignJobs(students, orders, drivingTimes);
+            } else {
+                newStudents = reshuffleOrdersOfAStudent(students, orders, drivingTimes);
+            }
+            
             int currentProfit = currentProfit(students, orders);
             int newProfit = currentProfit(newStudents, orders);
-
+        
             // Calculate acceptance probability
             if (acceptanceProbability(currentProfit, newProfit, temperature) > Math.random()) {
                 students = newStudents; // Accept new solution
@@ -87,31 +98,32 @@ public class SimulatedAnnealing {
                     bestProfit = newProfit; // Update best profit
                 }
             }
-            if (counter % 1000 == 0) {
+            if (counter % 100000 == 0) {
                 System.out.println("Current profit: " + currentProfit + " | Best profit: " + bestProfit + " | Temperature: " + temperature + " | Counter: " + counter);
             }
             // Cool system
             temperature *= 1 - coolingRate;
             counter++; 
         }
+
+        return students;
     
-        System.out.println("Final best profit: " + bestProfit);
     }
 
     public static int currentProfit(Student[] students, HashMap<Integer, Order> orders) {
-        int totalProfit = 0;
-        int costPerSecond = 1 / 60; // Assuming cost is 1 unit per second for simplicity.
-    
+        double totalProfit = 0;
+        double costPerSecond = 60.0 / (60 * 60); // Correctly calculate cost per second (€60/hour)
         for (Student student : students) {
+            // Add profit from each order
             for (Integer orderID : student.getAssignedOrderIDs()) {
                 Order order = orders.get(orderID);
-                totalProfit += order.getProfit(); // Add profit from each order
+                totalProfit += order.getProfit();
             }
-            // Subtract cost of student's working time
+            // Subtract cost of student's working time, doing it outside the inner loop
             totalProfit -= student.getTotalWorkingTime() * costPerSecond;
         }
     
-        return totalProfit;
+        return (int) Math.round(totalProfit);
     }
 
     public static double acceptanceProbability(int currentProfit, int newProfit, double temperature) {
@@ -123,47 +135,104 @@ public class SimulatedAnnealing {
     }
 
     public static Student[] alterAssignments(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-    Random rand = new Random();
-    // Deep copy the students array to avoid altering the original assignments
-    Student[] newStudents = new Student[students.length];
-    for (int i = 0; i < students.length; i++) {
-        // Clone each student to preserve the integrity of the original assignments
-        newStudents[i] = new Student(students[i].getId(), new ArrayList<>(students[i].getAssignedOrderIDs()), students[i].getTotalWorkingTime());
-    }
+        Student[] newStudents = deepCopyStudents(students);
 
-    // Select two random students
-    int studentIndex1 = rand.nextInt(newStudents.length);
-    int studentIndex2 = rand.nextInt(newStudents.length);
-    while (studentIndex1 == studentIndex2) { // Ensure they are not the same
-        studentIndex2 = rand.nextInt(newStudents.length);
-    }
+        // Randomly select a student with at least one order
+        List<Student> studentsWithOrders = Arrays.stream(newStudents)
+                                                .filter(s -> !s.getAssignedOrderIDs().isEmpty())
+                                                .collect(Collectors.toList());
+        if (!studentsWithOrders.isEmpty()) {
+            Student studentFrom = studentsWithOrders.get(random.nextInt(studentsWithOrders.size()));
+            int orderIndex = random.nextInt(studentFrom.getAssignedOrderIDs().size());
+            Integer orderId = studentFrom.getAssignedOrderIDs().get(orderIndex);
+            Order orderToReassign = orders.get(orderId);
 
-    Student student1 = newStudents[studentIndex1];
-    Student student2 = newStudents[studentIndex2];
-
-    // Ensure both students have orders to swap
-    if (!student1.getAssignedOrderIDs().isEmpty() && !student2.getAssignedOrderIDs().isEmpty()) {
-        // Randomly select orders to swap
-        int orderIndex1 = rand.nextInt(student1.getAssignedOrderIDs().size());
-        int orderIndex2 = rand.nextInt(student2.getAssignedOrderIDs().size());
-        int orderID1 = student1.getAssignedOrderIDs().get(orderIndex1);
-        int orderID2 = student2.getAssignedOrderIDs().get(orderIndex2);
-
-        // Check if swap is allowed
-        if (orders.get(orderID1).getAllowedStudents().contains(student2.getId()) &&
-            orders.get(orderID2).getAllowedStudents().contains(student1.getId())) {
-            // Perform swap
-            student1.getAssignedOrderIDs().set(orderIndex1, orderID2);
-            student2.getAssignedOrderIDs().set(orderIndex2, orderID1);
-
-            // Recalculate total working time for both students
-            recalculateWorkingTime(student1, orders, drivingTimes);
-            recalculateWorkingTime(student2, orders, drivingTimes);
+            // Find a new student that is allowed to take this order and does not currently have it
+            for (Student studentTo : newStudents) {
+                if (orderToReassign.getAllowedStudents().contains(studentTo.getId()) && !studentTo.getAssignedOrderIDs().contains(orderId)) {
+                    // Reassign the order
+                    studentFrom.removeOrder(orderId, orders, drivingTimes); // Assume this method updates the student's assigned orders and total working time
+                    studentTo.addOrder(orderId, orders, drivingTimes); // Assume this method does the same
+                    
+                    // Recalculate working times for both students involved
+                    recalculateWorkingTime(studentFrom, orders, drivingTimes);
+                    recalculateWorkingTime(studentTo, orders, drivingTimes);
+                    
+                    break; // Stop after reassigning to ensure only slight changes are made
+                }
+            }
         }
+
+        return newStudents;
+    } 
+
+    public static Student[] reshuffleOrdersOfAStudent(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        Student[] newStudents = deepCopyStudents(students);
+
+        // Filter students with more than one order to ensure reshuffling has an effect
+        List<Student> studentsWithMultipleOrders = Arrays.stream(newStudents)
+            .filter(s -> s.getAssignedOrderIDs().size() > 1)
+            .collect(Collectors.toList());
+
+        if (!studentsWithMultipleOrders.isEmpty()) {
+            // Select a random student with multiple orders
+            Student selectedStudent = studentsWithMultipleOrders.get(random.nextInt(studentsWithMultipleOrders.size()));
+            
+            // Reshuffle their assigned orders
+            Collections.shuffle(selectedStudent.getAssignedOrderIDs());
+            
+            // Recalculate the total working time for the selected student
+            recalculateWorkingTime(selectedStudent, orders, drivingTimes);
+        }
+
+        return newStudents; // Return the modified array with potentially reshuffled orders
     }
 
-    return newStudents;
-}
+    public static Student[] removeAndReassignJobs(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        Student[] newStudents = deepCopyStudents(students);
+    
+        // Select a random student with at least one order for job removal
+        List<Student> studentsWithOrders = Arrays.stream(newStudents)
+                                                  .filter(s -> !s.getAssignedOrderIDs().isEmpty())
+                                                  .collect(Collectors.toList());
+        if (!studentsWithOrders.isEmpty()) {
+            Student selectedStudent = studentsWithOrders.get(random.nextInt(studentsWithOrders.size()));
+    
+            // Randomly select a job to remove
+            List<Integer> assignedOrders = new ArrayList<>(selectedStudent.getAssignedOrderIDs());
+            if (!assignedOrders.isEmpty()) {
+                Integer orderIdToRemove = assignedOrders.get(random.nextInt(assignedOrders.size()));
+                selectedStudent.removeOrder(orderIdToRemove, orders, drivingTimes); // Remove the selected order
+    
+                // Attempt to reassign the removed job to a different student
+                Order orderToReassign = orders.get(orderIdToRemove);
+                for (Student studentTo : newStudents) {
+                    // Check if this student can take the order and does not currently have it
+                    if (orderToReassign.getAllowedStudents().contains(studentTo.getId()) &&
+                        !studentTo.getAssignedOrderIDs().contains(orderIdToRemove)) {
+                        studentTo.addOrder(orderIdToRemove, orders, drivingTimes);
+                        
+                        }
+                    }
+                }
+    
+                // Recalculate working times for both the student who lost the job and the one who may have gained it
+                recalculateWorkingTime(selectedStudent, orders, drivingTimes);
+                // Note: If the order was successfully reassigned, the recipient's working time is already recalculated in addOrder
+            }
+        
+    
+        return newStudents;
+    }
+
+    private static Student[] deepCopyStudents(Student[] students) {
+        Student[] copiedStudents = new Student[students.length];
+        for (int i = 0; i < students.length; i++) {
+            copiedStudents[i] = new Student(students[i].getId(), students[i].getAssignedOrderIDs(), students[i].getTotalWorkingTime());
+        }
+        return copiedStudents;
+    }
+
 
     private static void recalculateWorkingTime(Student student, HashMap<Integer, Order> orders, int[][] drivingTimes) {
         int totalWorkingTime = 0;
@@ -177,20 +246,20 @@ public class SimulatedAnnealing {
     }
 
     private static void writeOutput(Student[] students, String filename) throws IOException {
-            try (PrintWriter writer = new PrintWriter(filename, "UTF-8")) {
-                int netProfit = currentProfit(students, DataReader.readOrdersFile());
-                writer.println(netProfit);
+        try (PrintWriter writer = new PrintWriter(filename, "UTF-8")) {
+            int netProfit = currentProfit(students, DataReader.readOrdersFile());
+            writer.println(netProfit);
 
-                for (Student student : students) {
-                    // Write the number of customers (orders) served by the student
-                    List<Integer> orders = student.getAssignedOrderIDs();
-                    writer.println(orders.size());
+            for (Student student : students) {
+                // Write the number of customers (orders) served by the student
+                List<Integer> orders = student.getAssignedOrderIDs();
+                writer.println(orders.size());
 
-                    // Write the order IDs handled by the student
-                    for (int orderId : orders) {
-                        writer.println(orderId);
-                    }
+                // Write the order IDs handled by the student
+                for (int orderId : orders) {
+                    writer.println(orderId);
                 }
             }
         }
+    }
 }
