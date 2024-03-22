@@ -51,16 +51,19 @@ public class Student {
         return assignedOrderIDs;
     }
 
-    public void addOrder(int orderId, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+    public boolean addOrder(int orderId, HashMap<Integer, Order> orders, int[][] drivingTimes) {
         Order order = orders.get(orderId);
         int driveTimeTo = drivingTimes[251][order.getNodeID()];
         int driveTimeBack = drivingTimes[order.getNodeID()][251];
         int totalDriveTime = driveTimeTo + driveTimeBack + order.getDuration();
-
-        if ((this.totalWorkingTime + totalDriveTime <= 8 * 60 * 60)) { // Check if within 8-hour workday limit
+    
+        // Check if the addition keeps the total working time within an 8-hour workday limit
+        if (this.totalWorkingTime + totalDriveTime <= 8 * 60 * 60) {
             this.assignedOrderIDs.add(orderId);
             this.totalWorkingTime += totalDriveTime;
+            return true; // Order was successfully added
         }
+        return false; // Order was not added due to exceeding the workday limit
     }
     
     public void removeOrder(int orderId, HashMap<Integer, Order> orders, int[][] drivingTimes) {
