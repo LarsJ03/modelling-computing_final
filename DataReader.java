@@ -34,10 +34,11 @@ public class DataReader {
             for (int j = 0; j < 20; j++) { // Assuming a fixed number of students for simplicity
                 if (orderData[7 + j].equals("1")) {
                     allowedStudents.add(j); // Assuming student IDs are simply their index for simplicity
+                    orders.put(orderID, new Order(orderID, nodeID, duration, profit, allowedStudents, false));
                 }
             }
 
-            orders.put(orderID, new Order(orderID, nodeID, duration, profit, allowedStudents));
+            
         }
         reader.close();
 

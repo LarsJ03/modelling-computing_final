@@ -21,15 +21,43 @@ public class Student {
         this.totalWorkingTime = totalWorkingTime;
     }
 
-    public boolean addJob(Order order, int totalDriveTime) {
-        int jobTime = order.getDuration() + totalDriveTime;
-        if (this.totalWorkingTime + jobTime <= 8 * 60 * 60) { // Check if within 8-hour limit
+    public boolean addOrder(Order order, int[][] drivingTimes, HashMap<Integer, Order> orders) {
+        int totalTime = 0;
+        if (this.getAssignedOrderIDs().size() == 0) {
+            int nodeFrom = 251; 
+            int nodeTo = order.getNodeID();
+            int jobTime = order.getDuration();
+            int driveTimeTo = distance(nodeFrom, nodeTo, drivingTimes);
+            totalTime = driveTimeTo + jobTime;
+        } else {
+            int lastOrderID = this.getLastAssignedOrderID();
+            Order lastOrder = orders.get(lastOrderID);
+            int nodeFrom = lastOrder.getNodeID();
+            int nodeTo = order.getNodeID();
+            int jobTime = order.getDuration();
+            int driveTimeTo = distance(nodeFrom, nodeTo, drivingTimes);
+            int driveTimeBack = distance(nodeTo, 251, drivingTimes); // Assuming you need to return to the starting point
+            totalTime = driveTimeTo + jobTime + driveTimeBack;
+
+        }
+
+        if (this.totalWorkingTime + totalTime <= 8 * 60 * 60) { // Check if within 8-hour limit
             this.assignedOrderIDs.add(order.getOrderID());
-            this.totalWorkingTime += jobTime;
+            this.totalWorkingTime += totalTime;
+            order.setAssigned(true);
             return true;
         } else {
             return false;
         }
+    }
+
+
+    public int getLastAssignedOrderID() {
+        return assignedOrderIDs.get(assignedOrderIDs.size() - 1);
+    }
+
+    public int distance(int fromNode, int toNode, int[][] drivingTimes) {
+        return drivingTimes[fromNode][toNode];
     }
 
     // Getter for the student's ID
@@ -51,28 +79,13 @@ public class Student {
         return assignedOrderIDs;
     }
 
-    public boolean addOrder(int orderId, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        Order order = orders.get(orderId);
-        int driveTimeTo = drivingTimes[251][order.getNodeID()];
-        int driveTimeBack = drivingTimes[order.getNodeID()][251];
-        int totalDriveTime = driveTimeTo + driveTimeBack + order.getDuration();
     
-        // Check if the addition keeps the total working time within an 8-hour workday limit
-        if (this.totalWorkingTime + totalDriveTime <= 8 * 60 * 60) {
-            this.assignedOrderIDs.add(orderId);
-            this.totalWorkingTime += totalDriveTime;
-            return true; // Order was successfully added
-        }
-        return false; // Order was not added due to exceeding the workday limit
-    }
     
-    public void removeOrder(int orderId, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        Order order = orders.get(orderId);
-        int driveTimeTo = drivingTimes[251][order.getNodeID()];
-        int driveTimeBack = drivingTimes[order.getNodeID()][251];
-        int totalDriveTime = driveTimeTo + driveTimeBack + order.getDuration();
-
-        this.assignedOrderIDs.remove(Integer.valueOf(orderId)); // Remove the order ID from the list
-        this.totalWorkingTime -= totalDriveTime; // Subtract the time taken to complete the order
+    public void removeOrder(Order randomOrder, int[][] drivingTimes) {
+        Integer randomOrderID = randomOrder.getOrderID(); // Use Integer to ensure the correct remove method is called
+        this.assignedOrderIDs.remove(randomOrderID); // This now correctly removes by value
+        int driveTimeBack = distance(randomOrder.getNodeID(), 251, drivingTimes); // Assuming 251 is the headquarters node ID
+        this.totalWorkingTime -= randomOrder.getDuration() + driveTimeBack;
+        randomOrder.setAssigned(false);
     }
 }

@@ -1,6 +1,5 @@
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -49,56 +48,33 @@ public class AnnealingStrategies {
         return students; // Return the original array with the student updated
     }
 
-    public static Student[] reassignOrder(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        Student[] newStudents = deepCopyStudents(students);
+    public static void removeRandomOrder(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        int randomStudentIndex = random.nextInt(students.length);
+        Student randomStudent = students[randomStudentIndex];
+        if (randomStudent.getAssignedOrderIDs().size() > 0) {
+            int randomOrderIndex = random.nextInt(randomStudent.getAssignedOrderIDs().size());
+            Order randomOrder = orders.get(randomStudent.getAssignedOrderIDs().get(randomOrderIndex));
+            randomStudent.removeOrder(randomOrder, drivingTimes);
+        }
+        
+
+    }
     
-        // Filter students with orders to ensure there's an order to reassign
-        List<Student> studentsWithOrders = Arrays.stream(newStudents)
-                                                 .filter(s -> !s.getAssignedOrderIDs().isEmpty())
-                                                 .collect(Collectors.toList());
-    
-        if (!studentsWithOrders.isEmpty()) {
-            // Select a random student with at least one order
-            Student studentFrom = studentsWithOrders.get(random.nextInt(studentsWithOrders.size()));
-    
-            // Get a random order from this student
-            int orderIndex = random.nextInt(studentFrom.getAssignedOrderIDs().size());
-            Integer orderIdToReassign = studentFrom.getAssignedOrderIDs().get(orderIndex);
-            Order orderToReassign = orders.get(orderIdToReassign);
-    
-            // Remove the order from the first student
-            studentFrom.getAssignedOrderIDs().remove(orderIndex);
-            recalculateWorkingTime(studentFrom, orders, drivingTimes);
-    
-            // Try to assign the order to another student who is allowed to take it and won't exceed max working hours
-            for (Student studentTo : newStudents) {
-                if (!studentTo.equals(studentFrom) && orderToReassign.getAllowedStudents().contains(studentTo.getId())) {
-                    // Temporarily add the order to calculate the new working time
-                    studentTo.getAssignedOrderIDs().add(orderIdToReassign);
-                    recalculateWorkingTime(studentTo, orders, drivingTimes);
-    
-                    // Check if the new working time exceeds the maximum allowed working time
-                    if (studentTo.getTotalWorkingTime() > 8*3600) {
-                        // If it exceeds, remove the order and try the next student
-                        studentTo.getAssignedOrderIDs().remove(orderIdToReassign);
-                        recalculateWorkingTime(studentTo, orders, drivingTimes);
-                    } else {
-                        // Successfully reassigned the order without exceeding max working hours
-                        break; // Stop looking for a student to reassign the order to
+    public static void addOrderToAllowedStudent(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+        for (Order order : orders.values()) {
+            if (!order.isAssigned()) {
+                for (Student student : students) {
+                    if (order.getAllowedStudents().contains(student.getId())) {
+                        if (student.addOrder(order, drivingTimes, orders)) {
+                            order.setAssigned(true); 
+                            break; 
+                        }
                     }
                 }
             }
         }
-
-        
-    
-        // Update the original students array with the modified students
-        for (int i = 0; i < students.length; i++) {
-            students[i] = newStudents[i];
-        }
-    
-        return students; // Return the updated original array
     }
+    
 
 
     public static Student[] deepCopyStudents(Student[] students) {

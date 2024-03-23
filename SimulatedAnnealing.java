@@ -1,10 +1,6 @@
-import java.util.Random;
-import java.util.stream.Collectors;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -12,6 +8,7 @@ import java.io.PrintWriter;
 
 public class SimulatedAnnealing {
     private static final int NUM_STUDENTS = 20;
+    private static final Random random = new Random();
 
     public static void main(String[] args) throws FileNotFoundException {
         // Load driving times and orders as before
@@ -22,6 +19,8 @@ public class SimulatedAnnealing {
 
         // Initialize students
         Student[] students = initializeStudents(drivingTimes, orders);
+
+    
 
         // Perform simulated annealing to optimize the assignments
         long startTime = System.currentTimeMillis(); // Start time
@@ -46,29 +45,28 @@ public class SimulatedAnnealing {
     }
 
     public static Student[] initializeStudents(int[][] drivingTimes, HashMap<Integer, Order> orders) {
-        Student[] students = new Student[NUM_STUDENTS];
-        for (int i = 0; i < NUM_STUDENTS; i++) {
-            students[i] = new Student(i);
-        }
-
-        for (Order order : orders.values()) {
-            for (Integer studentID : order.getAllowedStudents()) {
-                Student student = students[studentID];
-                int driveTimeTo = drivingTimes[251][order.getNodeID()]; 
-                int driveTimeBack = drivingTimes[order.getNodeID()][251]; 
-                int totalDriveTime = driveTimeTo + driveTimeBack;
-                
-                if (student.addJob(order, totalDriveTime)) {
-                    break; 
-                }
-            }
-        }
-
-        return students;
+    Student[] students = new Student[NUM_STUDENTS];
+    for (int i = 0; i < NUM_STUDENTS; i++) {
+        students[i] = new Student(i);
     }
 
+    for (Order order : orders.values()) {
+        for (Integer studentID : order.getAllowedStudents()) {
+            Student student = students[studentID];
+            
+            if (student.addOrder(order, drivingTimes, orders)) {
+                order.setAssigned(true); // Mark the order as assigned
+                break; 
+            }
+        }
+    }
+
+    return students;
+}
+
+
     public static Student[] simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        double temperature = 1000000; // Starting temperature
+        double temperature = 100000000; // Starting temperature
         double coolingRate = 0.00001; // Cooling rate
         int bestProfit = currentProfit(students, orders);
         System.out.println("start profit = " + bestProfit);
@@ -77,12 +75,21 @@ public class SimulatedAnnealing {
         while (temperature > 1) {
             
             Student[] newStudents = AnnealingStrategies.deepCopyStudents(students);
+            int strategy = random.nextInt(3);
             // Create a new neighbor solution by slightly altering the current solution
-            newStudents = AnnealingStrategies.swapTwoOrders(students, orders, drivingTimes);
-
-            if (counter % 100 == 0) {
-                newStudents = AnnealingStrategies.reassignOrder(students, orders, drivingTimes);
-            }
+            switch (strategy) {
+                case 0:
+                    // Perform swap strategy as before
+                    newStudents = AnnealingStrategies.swapTwoOrders(students, orders, drivingTimes);
+                    break;
+                case 1:
+                    // Attempt to remove a random order from a student
+                    AnnealingStrategies.removeRandomOrder(students, orders, drivingTimes);
+                    break;
+                default:
+                    // Default action, if needed
+                    break;
+            }   
             
             
             int currentProfit = currentProfit(students, orders);
@@ -102,6 +109,8 @@ public class SimulatedAnnealing {
             temperature *= 1 - coolingRate;
             counter++; 
         }
+
+        
 
         return students;
     
