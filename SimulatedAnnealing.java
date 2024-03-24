@@ -1,9 +1,13 @@
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 
 public class SimulatedAnnealing {
@@ -18,9 +22,10 @@ public class SimulatedAnnealing {
         HashMap<Integer, Order> orders = DataReader.readOrdersFile(); 
 
         // Initialize students
-        Student[] students = initializeStudents(drivingTimes, orders);
-
-    
+        Student[] students = new Student[NUM_STUDENTS];
+        for (int i = 0; i < NUM_STUDENTS; i++) {
+            students[i] = new Student(i);
+        }    
 
         // Perform simulated annealing to optimize the assignments
         long startTime = System.currentTimeMillis(); // Start time
@@ -44,77 +49,111 @@ public class SimulatedAnnealing {
         }
     }
 
-    public static Student[] initializeStudents(int[][] drivingTimes, HashMap<Integer, Order> orders) {
-    Student[] students = new Student[NUM_STUDENTS];
-    for (int i = 0; i < NUM_STUDENTS; i++) {
-        students[i] = new Student(i);
-    }
-
-    for (Order order : orders.values()) {
-        for (Integer studentID : order.getAllowedStudents()) {
-            Student student = students[studentID];
-            
-            if (student.addOrder(order, drivingTimes, orders)) {
-                order.setAssigned(true); // Mark the order as assigned
-                break; 
-            }
-        }
-    }
-
-    return students;
-}
-
 
     public static Student[] simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        double temperature = 100000000; // Starting temperature
+        double temperature = 100; // Starting temperature
         double coolingRate = 0.00001; // Cooling rate
-        int bestProfit = currentProfit(students, orders);
-        System.out.println("start profit = " + bestProfit);
-
+        double startTemperature = temperature; // Save start temperature for probability calculations
+    
+        ArrayList<Integer> notAssignedOrders = new ArrayList<>(orders.keySet());
+        ArrayList<Integer> changes = new ArrayList<>();
+    
+        int bestProfit = 0;
+        int currentProfit = 0;
+        int newProfit = 0;
+    
         int counter = 0;
-        while (temperature > 1) {
-            
+        while (temperature > 0.5) {
+            // Dynamically calculate strategy probabilities based on current temperature
+            double addProbability = 0.1;
+            double removeProbability = 0.1; 
+    
+            double rand = Math.random();
+            String strategyUsed = "";
+            AnnealingStrategies.checkForOverlap(students, notAssignedOrders, "Before new iteration order");
+    
             Student[] newStudents = AnnealingStrategies.deepCopyStudents(students);
-            int strategy = random.nextInt(3);
-            // Create a new neighbor solution by slightly altering the current solution
-            switch (strategy) {
-                case 0:
-                    // Perform swap strategy as before
-                    newStudents = AnnealingStrategies.swapTwoOrders(students, orders, drivingTimes);
-                    break;
-                case 1:
-                    // Attempt to remove a random order from a student
-                    AnnealingStrategies.removeRandomOrder(students, orders, drivingTimes);
-                    break;
-                default:
-                    // Default action, if needed
-                    break;
-            }   
-            
-            
-            int currentProfit = currentProfit(students, orders);
-            int newProfit = currentProfit(newStudents, orders);
-       
+            ArrayList<Integer> tempChanges = new ArrayList<>(notAssignedOrders); // Temporary changes holder
+            OrderAssignment orderAssignmentResult;
+
+            // Assume other parts of the method are above this
+            if (rand < addProbability) {
+                strategyUsed = "Add Order";
+                orderAssignmentResult = AnnealingStrategies.addOrder(newStudents, orders, drivingTimes, tempChanges);
+                AnnealingStrategies.checkForOverlap(orderAssignmentResult.getUpdatedStudents(), orderAssignmentResult.getUpdatedNotAssignedOrders(), "after add");
+            } else if (rand < addProbability + removeProbability) {
+                strategyUsed = "Remove Order";
+                orderAssignmentResult = AnnealingStrategies.removeRandomOrder(newStudents, orders, drivingTimes, tempChanges);
+                AnnealingStrategies.checkForOverlap(orderAssignmentResult.getUpdatedStudents(), orderAssignmentResult.getUpdatedNotAssignedOrders(), "after remove");
+            } else {
+                strategyUsed = "Swap Orders";
+                orderAssignmentResult = AnnealingStrategies.swapTwoOrders(newStudents, orders, drivingTimes, tempChanges);
+                AnnealingStrategies.checkForOverlap(orderAssignmentResult.getUpdatedStudents(), orderAssignmentResult.getUpdatedNotAssignedOrders(), "After swap");
+            }
+
+            // Now, unpack the OrderAssignmentResult to get the updated students and notAssignedOrders
+            newStudents = orderAssignmentResult.getUpdatedStudents();
+            tempChanges = orderAssignmentResult.getUpdatedNotAssignedOrders();
+
+            AnnealingStrategies.checkForOverlap(newStudents, tempChanges, "After operation");
+    
+            currentProfit = currentProfit(students, orders);
+            newProfit = currentProfit(newStudents, orders);
+
+            AnnealingStrategies.checkForOverlap(newStudents, tempChanges, "after profit calculation");
+
+            if (newProfit > bestProfit) {
+                students = newStudents;
+                bestProfit = newProfit; // Update best profit
+                notAssignedOrders = new ArrayList<>(tempChanges); // Apply changes if this is a new best
+            }
+    
             // Calculate acceptance probability
             if (acceptanceProbability(currentProfit, newProfit, temperature) > Math.random()) {
                 students = newStudents; // Accept new solution
-                if (newProfit > bestProfit) {
-                    bestProfit = newProfit; // Update best profit
+                bestProfit = newProfit; // Update best profit
+                notAssignedOrders = new ArrayList<>(tempChanges); // Apply changes if this is a new best
+
+            }
+
+            AnnealingStrategies.checkForOverlap(newStudents, tempChanges, "after accept");
+    
+            if (counter % 1000 == 0) {
+                System.out.println("Current profit: " + currentProfit + " | Best profit: " + bestProfit + " | Temperature: " + temperature + " | Counter: " + counter);
+                System.out.println("Not assigned orders: " + notAssignedOrders.size());
+            }
+
+            
+
+            // Debugging code to detect duplicate orders
+            Set<Integer> assignedOrdersDebug = new HashSet<>();
+            boolean duplicatesDetected = false;
+            for (Student student : newStudents) {
+                for (Integer orderId : student.getAssignedOrderIDs()) {
+                    if (!assignedOrdersDebug.add(orderId)) {
+                        duplicatesDetected = true;
+                        break;
+                    }
                 }
             }
-            if (counter % 100000 == 0) {
-                System.out.println("Current profit: " + currentProfit + " | Best profit: " + bestProfit + " | Temperature: " + temperature + " | Counter: " + counter);
+
+            if (duplicatesDetected && strategyUsed.equals("Swap Orders")) {
+                System.out.println("Duplicate order assignments detected at counter " + counter + " using strategy " + strategyUsed);
+                // Optionally, print more information about the duplicates or the state of assignments
+                break;
             }
+
+            AnnealingStrategies.checkForOverlap(students, notAssignedOrders, "end iteration");
+
             // Cool system
             temperature *= 1 - coolingRate;
-            counter++; 
+            counter++;
         }
-
-        
-
-        return students;
     
+        System.out.println("Final not assigned orders: " + notAssignedOrders.size());
+        return students;
     }
+    
 
     public static int currentProfit(Student[] students, HashMap<Integer, Order> orders) {
         double totalRevenue = 0;

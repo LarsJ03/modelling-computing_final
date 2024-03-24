@@ -44,7 +44,6 @@ public class Student {
         if (this.totalWorkingTime + totalTime <= 8 * 60 * 60) { // Check if within 8-hour limit
             this.assignedOrderIDs.add(order.getOrderID());
             this.totalWorkingTime += totalTime;
-            order.setAssigned(true);
             return true;
         } else {
             return false;
@@ -86,6 +85,5 @@ public class Student {
         this.assignedOrderIDs.remove(randomOrderID); // This now correctly removes by value
         int driveTimeBack = distance(randomOrder.getNodeID(), 251, drivingTimes); // Assuming 251 is the headquarters node ID
         this.totalWorkingTime -= randomOrder.getDuration() + driveTimeBack;
-        randomOrder.setAssigned(false);
     }
 }

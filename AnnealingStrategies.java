@@ -1,16 +1,18 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class AnnealingStrategies {
     private static final Random random = new Random();
 
-    public static Student[] swapTwoOrders(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+    public static OrderAssignment swapTwoOrders(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes, ArrayList<Integer> notAssignedOrders) {
+        checkForOverlap(students, notAssignedOrders, "Before swapping order");
         Student[] newStudents = deepCopyStudents(students);
-    
         // Filter students with more than one order to ensure swapping has an effect
         List<Student> studentsWithMultipleOrders = Arrays.stream(newStudents)
             .filter(s -> s.getAssignedOrderIDs().size() > 1)
@@ -28,7 +30,6 @@ public class AnnealingStrategies {
             while (index2 == index1) {
                 index2 = random.nextInt(size);
             }
-    
             // Perform the swap
             Integer temp = selectedStudent.getAssignedOrderIDs().get(index1);
             selectedStudent.getAssignedOrderIDs().set(index1, selectedStudent.getAssignedOrderIDs().get(index2));
@@ -44,35 +45,53 @@ public class AnnealingStrategies {
                 students[i] = newStudents[i];
             }
         }
-
-        return students; // Return the original array with the student updated
+        checkForOverlap(students, notAssignedOrders, "After swapping order");
+        return new OrderAssignment(students, notAssignedOrders); // Return the original array with the student updated
     }
 
-    public static void removeRandomOrder(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+    public static OrderAssignment removeRandomOrder(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes, ArrayList<Integer> notAssignedOrders) {
+        if (students.length == 0) {
+            return new OrderAssignment(students, notAssignedOrders);
+        }
+
+        checkForOverlap(students, notAssignedOrders, "Before removing order");
+        
         int randomStudentIndex = random.nextInt(students.length);
         Student randomStudent = students[randomStudentIndex];
-        if (randomStudent.getAssignedOrderIDs().size() > 0) {
+        if (!randomStudent.getAssignedOrderIDs().isEmpty()) {
             int randomOrderIndex = random.nextInt(randomStudent.getAssignedOrderIDs().size());
-            Order randomOrder = orders.get(randomStudent.getAssignedOrderIDs().get(randomOrderIndex));
-            randomStudent.removeOrder(randomOrder, drivingTimes);
+            Integer randomOrderID = randomStudent.getAssignedOrderIDs().get(randomOrderIndex); // Use Integer to get the order ID
+            Order randomOrder = orders.get(randomOrderID);
+            if (randomOrder != null) {
+                randomStudent.removeOrder(randomOrder, drivingTimes); // Assuming your removeOrder method is corrected as per previous suggestions
+                notAssignedOrders.add(Integer.valueOf(randomOrderID)); // Correctly remove by object
+            } 
         }
-        
+        checkForOverlap(students, notAssignedOrders, "after removing order");
 
+        return new OrderAssignment(students, notAssignedOrders);
     }
     
-    public static void addOrderToAllowedStudent(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        for (Order order : orders.values()) {
-            if (!order.isAssigned()) {
-                for (Student student : students) {
-                    if (order.getAllowedStudents().contains(student.getId())) {
-                        if (student.addOrder(order, drivingTimes, orders)) {
-                            order.setAssigned(true); 
-                            break; 
-                        }
-                    }
-                }
+    public static OrderAssignment addOrder(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes, ArrayList<Integer> notAssignedOrders) {
+        if (notAssignedOrders.isEmpty()) {
+            return new OrderAssignment(students, notAssignedOrders);
+        }
+        checkForOverlap(students, notAssignedOrders, "Before adding order");
+    
+        // Use the random index to retrieve an actual Order ID from the notAssignedOrders list
+        int randomIndex = random.nextInt(notAssignedOrders.size());
+        Integer randomOrderID = notAssignedOrders.get(randomIndex); // Correctly get the Order ID
+        Order randomOrder = orders.get(randomOrderID); // Now get the Order object using the ID
+        // Attempt to add the order to one of the allowed students
+        for (int studentID : randomOrder.getAllowedStudents()) {
+            Student student = students[studentID];
+            if (student.addOrder(randomOrder, drivingTimes, orders)) {
+                notAssignedOrders.remove(randomOrderID); // If successfully added, remove from notAssignedOrders
+                break;
             }
         }
+        checkForOverlap(students, notAssignedOrders, "after adding order");
+        return new OrderAssignment(students, notAssignedOrders);
     }
     
 
@@ -86,6 +105,7 @@ public class AnnealingStrategies {
     }
 
     private static void recalculateWorkingTime(Student student, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+
         if (student.getAssignedOrderIDs().isEmpty()) {
             student.setTotalWorkingTime(0);
             return;
@@ -116,5 +136,28 @@ public class AnnealingStrategies {
         totalWorkingTime += drivingTimes[lastOrder.getNodeID()][headquartersNodeID];
     
         student.setTotalWorkingTime(totalWorkingTime);
+    }
+
+    public static void checkForOverlap(Student[] students, ArrayList<Integer> notAssignedOrders, String message) {
+        Set<Integer> assignedOrderIds = new HashSet<>();
+        for (Student student : students) {
+            assignedOrderIds.addAll(student.getAssignedOrderIDs());
+        }
+    
+        // Check for overlap: An order is in both notAssignedOrders and assigned
+        for (Integer orderId : notAssignedOrders) {
+            if (assignedOrderIds.contains(orderId)) {
+                throw new RuntimeException("Overlap detected " + message + ": Order " + orderId + " is both in notAssignedOrders and assigned to a student.");
+            }
+        }
+    
+        // The total number of unique orders either assigned or not assigned
+        int totalUniqueOrders = assignedOrderIds.size() + notAssignedOrders.size();
+        int totalOrders = 1177; // Hardcoded based on your information
+    
+        // If the total unique orders does not equal the total known orders, some are missing
+        if (totalUniqueOrders != totalOrders) {
+            throw new RuntimeException("Order inconsistency detected " + message + ": The total of assigned and not assigned orders (" + totalUniqueOrders + ") does not match the known total of " + totalOrders + ".");
+        }
     }
 }
