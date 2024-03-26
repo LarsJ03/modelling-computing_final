@@ -4,8 +4,8 @@ import java.util.HashMap;
 
 public class Student {
     private int id;
-    private List<Integer> assignedOrderIDs; // Stores assigned order IDs
-    private int totalWorkingTime; // in seconds
+    private List<Integer> assignedOrderIDs; 
+    private int totalWorkingTime; 
 
     // Constructor
     public Student(int id) {
@@ -17,7 +17,7 @@ public class Student {
     // Constructor for deep copying
     public Student(int id, List<Integer> assignedOrderIDs, int totalWorkingTime) {
         this.id = id;
-        this.assignedOrderIDs = new ArrayList<>(assignedOrderIDs); // Ensure a deep copy is made
+        this.assignedOrderIDs = new ArrayList<>(assignedOrderIDs); 
         this.totalWorkingTime = totalWorkingTime;
     }
 
@@ -36,12 +36,12 @@ public class Student {
             int nodeTo = order.getNodeID();
             int jobTime = order.getDuration();
             int driveTimeTo = distance(nodeFrom, nodeTo, drivingTimes);
-            int driveTimeBack = distance(nodeTo, 251, drivingTimes); // Assuming you need to return to the starting point
+            int driveTimeBack = distance(nodeTo, 251, drivingTimes); 
             totalTime = driveTimeTo + jobTime + driveTimeBack;
 
         }
 
-        if (this.totalWorkingTime + totalTime <= 8 * 60 * 60) { // Check if within 8-hour limit
+        if (this.totalWorkingTime + totalTime <= 8 * 60 * 60) {
             this.assignedOrderIDs.add(order.getOrderID());
             this.totalWorkingTime += totalTime;
             return true;
@@ -59,7 +59,6 @@ public class Student {
         return drivingTimes[fromNode][toNode];
     }
 
-    // Getter for the student's ID
     public int getId() {
         return id;
     }
@@ -68,22 +67,17 @@ public class Student {
         return totalWorkingTime;
     }
 
-    // Setter for total working time
     public void setTotalWorkingTime(int totalWorkingTime) {
         this.totalWorkingTime = totalWorkingTime;
     }
-
-    // Getter for the list of assigned order IDs
     public List<Integer> getAssignedOrderIDs() {
         return assignedOrderIDs;
     }
-
-    
     
     public void removeOrder(Order randomOrder, int[][] drivingTimes) {
-        Integer randomOrderID = randomOrder.getOrderID(); // Use Integer to ensure the correct remove method is called
-        this.assignedOrderIDs.remove(randomOrderID); // This now correctly removes by value
-        int driveTimeBack = distance(randomOrder.getNodeID(), 251, drivingTimes); // Assuming 251 is the headquarters node ID
+        Integer randomOrderID = randomOrder.getOrderID(); 
+        this.assignedOrderIDs.remove(randomOrderID);
+        int driveTimeBack = distance(randomOrder.getNodeID(), 251, drivingTimes);
         this.totalWorkingTime -= randomOrder.getDuration() + driveTimeBack;
     }
 }
