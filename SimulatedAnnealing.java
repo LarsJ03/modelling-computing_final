@@ -52,7 +52,7 @@ public class SimulatedAnnealing {
 
     public static Student[] simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
         double temperature = 10; // Starting temperature
-        double coolingRate = 0.000006; // Cooling rate
+        double coolingRate = 0.000003; // Cooling rate
     
         ArrayList<Integer> notAssignedOrders = new ArrayList<>(orders.keySet());
     
@@ -81,7 +81,7 @@ public class SimulatedAnnealing {
     
             // Dynamically calculate strategy probabilities based on current temperature
             double addProbability = 0.1;
-            double removeProbability = 0.01;
+            double removeProbability = 0.001;
     
             if (rand < addProbability) {
                 startTime = System.currentTimeMillis();

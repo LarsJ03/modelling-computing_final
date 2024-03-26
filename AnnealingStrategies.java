@@ -34,10 +34,16 @@ public class AnnealingStrategies {
             Integer temp = selectedStudent.getAssignedOrderIDs().get(index1);
             selectedStudent.getAssignedOrderIDs().set(index1, selectedStudent.getAssignedOrderIDs().get(index2));
             selectedStudent.getAssignedOrderIDs().set(index2, temp);
-            
-            // Recalculate the total working time for the selected student
-            recalculateWorkingTime(selectedStudent, orders, drivingTimes);
+
+            if (recalculateWorkingTime(selectedStudent, orders, drivingTimes) > 28800) {
+                // If the working time exceeds the maximum, revert the swap
+                int temp2 = selectedStudent.getAssignedOrderIDs().get(index1);
+                selectedStudent.getAssignedOrderIDs().set(index1, selectedStudent.getAssignedOrderIDs().get(index2));
+                selectedStudent.getAssignedOrderIDs().set(index2, temp2);
+            }
         }
+
+        
     
         // Update the original students array with the modified student
         for (int i = 0; i < students.length; i++) {
@@ -65,6 +71,7 @@ public class AnnealingStrategies {
             if (randomOrder != null) {
                 randomStudent.removeOrder(randomOrder, drivingTimes); // Assuming your removeOrder method is corrected as per previous suggestions
                 notAssignedOrders.add(Integer.valueOf(randomOrderID)); // Correctly remove by object
+                recalculateWorkingTime(randomStudent, orders, drivingTimes);
             } 
         }
         checkForOverlap(students, notAssignedOrders, "after removing order");
@@ -85,7 +92,7 @@ public class AnnealingStrategies {
         // Attempt to add the order to one of the allowed students
         for (int studentID : randomOrder.getAllowedStudents()) {
             Student student = students[studentID];
-            if (student.addOrder(randomOrder, drivingTimes, orders)) {
+            if (student.addOrder(randomOrder, orders, drivingTimes)) {
                 notAssignedOrders.remove(randomOrderID); // If successfully added, remove from notAssignedOrders
                 break;
             }
@@ -104,11 +111,11 @@ public class AnnealingStrategies {
         return copiedStudents;
     }
 
-    private static void recalculateWorkingTime(Student student, HashMap<Integer, Order> orders, int[][] drivingTimes) {
+    public static int recalculateWorkingTime(Student student, HashMap<Integer, Order> orders, int[][] drivingTimes) {
 
         if (student.getAssignedOrderIDs().isEmpty()) {
             student.setTotalWorkingTime(0);
-            return;
+            return 0;
         }
     
         int totalWorkingTime = 0;
@@ -136,6 +143,8 @@ public class AnnealingStrategies {
         totalWorkingTime += drivingTimes[lastOrder.getNodeID()][headquartersNodeID];
     
         student.setTotalWorkingTime(totalWorkingTime);
+
+        return totalWorkingTime;
     }
 
     public static void checkForOverlap(Student[] students, ArrayList<Integer> notAssignedOrders, String message) {
