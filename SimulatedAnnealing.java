@@ -12,7 +12,7 @@ import java.util.ArrayList;
 
 public class SimulatedAnnealing {
     private static final int NUM_STUDENTS = 20;
-    private static final double RANDOM = Math.random();
+    private static final Random random = new Random();
 
     public static void main(String[] args) throws FileNotFoundException {
         // Load driving times and orders as before
@@ -52,9 +52,10 @@ public class SimulatedAnnealing {
 
     public static Student[] simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
         double temperature = 10; // Starting temperature
-        double coolingRate = 0.000002; // Cooling rate
+        double coolingRate = 0.0000017; // Cooling rate
     
         ArrayList<Integer> notAssignedOrders = new ArrayList<>(orders.keySet());
+        Student[] bestStudents = AnnealingStrategies.deepCopyStudents(students);
     
         int bestProfit = 0;
         int newProfit;
@@ -71,7 +72,8 @@ public class SimulatedAnnealing {
         int countSwapOrders = 0;
         int counter = 0;
     
-        while (temperature > 0.5) {
+        while (temperature > 0.01) {
+            double rand = Math.random();
     
             Student[] newStudents = AnnealingStrategies.deepCopyStudents(students);
             ArrayList<Integer> tempChanges = new ArrayList<>(notAssignedOrders);
@@ -82,13 +84,13 @@ public class SimulatedAnnealing {
             double addProbability = 0.2;
             double removeProbability = 0.002;
     
-            if (RANDOM < addProbability) {
+            if (rand < addProbability) {
                 startTime = System.currentTimeMillis();
                 AnnealingStrategies.addOrder(newStudents, orders, drivingTimes, tempChanges);
                 endTime = System.currentTimeMillis();
                 totalTimeAddOrder += (endTime - startTime);
                 countAddOrder++;
-            } else if (RANDOM < addProbability + removeProbability) {
+            } else if (rand < addProbability + removeProbability) {
                 startTime = System.currentTimeMillis();
                 AnnealingStrategies.removeRandomOrder(newStudents, orders, drivingTimes, tempChanges);
                 endTime = System.currentTimeMillis();
@@ -111,7 +113,10 @@ public class SimulatedAnnealing {
             startTime = System.currentTimeMillis();
             if (acceptanceProbability(currentProfit, newProfit, temperature) > Math.random()) {
                 students = newStudents; // Accept new solution
-                bestProfit = newProfit; // Update best profit
+                if (newProfit > bestProfit) {
+                    bestProfit = newProfit; // Update best profit
+                    bestStudents = AnnealingStrategies.deepCopyStudents(newStudents); // Update best students array
+                }
                 notAssignedOrders = new ArrayList<>(tempChanges); // Apply changes
             }
             endTime = System.currentTimeMillis();
@@ -120,7 +125,20 @@ public class SimulatedAnnealing {
                 System.out.println("Iteration: " + counter + ", Profit: " + bestProfit + ", Temperature: " + temperature);
             }
 
-            temperature *= 1 - coolingRate;
+            if (temperature < 1.0) {
+                temperature -= 0.0000008;
+            } else if (temperature < 0.3) {
+                temperature -= 0.0000003;
+            } else {
+                temperature -= 0.00001;
+            }
+
+            if (temperature < 0.5 && counter < 4000000) {
+                temperature += 5;
+            }
+            
+
+            
             counter++;
         }
     
@@ -132,7 +150,7 @@ public class SimulatedAnnealing {
         System.out.println("Average time for Acceptance Condition: " + (totalTimeAcceptance / (double) counter) + " ms.");
     
         System.out.println("Final not assigned orders: " + notAssignedOrders.size() + ". Total iterations: " + counter);
-        return students;
+        return bestStudents;
     }
     
 

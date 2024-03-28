@@ -12,7 +12,6 @@ public class AnnealingStrategies {
     private static final Random random = new Random();
 
     public static OrderAssignment swapTwoOrders(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes, ArrayList<Integer> notAssignedOrders) {
-    checkForOverlap(students, notAssignedOrders, "Before swapping order");
     // No need for deep copying all students upfront
 
     // Randomly select a student with more than one order
@@ -53,8 +52,6 @@ public class AnnealingStrategies {
         if (students.length == 0) {
             return new OrderAssignment(students, notAssignedOrders);
         }
-
-        checkForOverlap(students, notAssignedOrders, "Before removing order");
         
         int randomStudentIndex = random.nextInt(students.length);
         Student randomStudent = students[randomStudentIndex];
@@ -68,7 +65,6 @@ public class AnnealingStrategies {
                 recalculateWorkingTime(randomStudent, orders, drivingTimes);
             } 
         }
-        checkForOverlap(students, notAssignedOrders, "after removing order");
 
         return new OrderAssignment(students, notAssignedOrders);
     }
@@ -77,7 +73,6 @@ public class AnnealingStrategies {
         if (notAssignedOrders.isEmpty()) {
             return new OrderAssignment(students, notAssignedOrders);
         }
-        checkForOverlap(students, notAssignedOrders, "Before adding order");
     
         int randomIndex = random.nextInt(notAssignedOrders.size());
         Integer randomOrderID = notAssignedOrders.get(randomIndex); 
@@ -91,7 +86,6 @@ public class AnnealingStrategies {
             }
         }
         
-        checkForOverlap(students, notAssignedOrders, "after adding order");
         return new OrderAssignment(students, notAssignedOrders);
     }
     
@@ -133,25 +127,5 @@ public class AnnealingStrategies {
         student.setTotalWorkingTime(totalWorkingTime);
 
         return totalWorkingTime;
-    }
-
-    public static void checkForOverlap(Student[] students, ArrayList<Integer> notAssignedOrders, String message) {
-        Set<Integer> assignedOrderIds = new HashSet<>();
-        for (Student student : students) {
-            assignedOrderIds.addAll(student.getAssignedOrderIDs());
-        }
-
-        for (Integer orderId : notAssignedOrders) {
-            if (assignedOrderIds.contains(orderId)) {
-                throw new RuntimeException("Overlap detected " + message + ": Order " + orderId + " is both in notAssignedOrders and assigned to a student.");
-            }
-        }
-    
-        int totalUniqueOrders = assignedOrderIds.size() + notAssignedOrders.size();
-        int totalOrders = 1177; 
-    
-        if (totalUniqueOrders != totalOrders) {
-            throw new RuntimeException("Order inconsistency detected " + message + ": The total of assigned and not assigned orders (" + totalUniqueOrders + ") does not match the known total of " + totalOrders + ".");
-        }
     }
 }
