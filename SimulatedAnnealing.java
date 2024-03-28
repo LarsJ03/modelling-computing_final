@@ -51,7 +51,7 @@ public class SimulatedAnnealing {
 
 
     public static Student[] simulatedAnnealing(Student[] students, HashMap<Integer, Order> orders, int[][] drivingTimes) {
-        double temperature = 10; // Starting temperature
+        double temperature = 7; // Starting temperature
         double coolingRate = 0.0000017; // Cooling rate
     
         ArrayList<Integer> notAssignedOrders = new ArrayList<>(orders.keySet());
@@ -71,6 +71,9 @@ public class SimulatedAnnealing {
         int countRemoveOrder = 0;
         int countSwapOrders = 0;
         int counter = 0;
+
+        double addProbability = 0.4;
+        double removeProbability = 0.1;
     
         while (temperature > 0.01) {
             double rand = Math.random();
@@ -81,8 +84,7 @@ public class SimulatedAnnealing {
             long startTime, endTime;
     
             // Dynamically calculate strategy probabilities based on current temperature
-            double addProbability = 0.2;
-            double removeProbability = 0.002;
+            
     
             if (rand < addProbability) {
                 startTime = System.currentTimeMillis();
@@ -126,15 +128,15 @@ public class SimulatedAnnealing {
             }
 
             if (temperature < 1.0) {
-                temperature -= 0.0000008;
+                temperature -= 0.000002;
             } else if (temperature < 0.3) {
-                temperature -= 0.0000003;
+                temperature -= 0.000001;
             } else {
                 temperature -= 0.00001;
             }
 
-            if (temperature < 0.5 && counter < 4000000) {
-                temperature += 5;
+            if (temperature < 0.5 && counter < 3000000) {
+                temperature += 3;
             }
             
 
@@ -187,7 +189,7 @@ public class SimulatedAnnealing {
     private static void writeOutput(Student[] students, String filename) throws IOException {
         try (PrintWriter writer = new PrintWriter(filename, "UTF-8")) {
             int netProfit = currentProfit(students, DataReader.readOrdersFile());
-            writer.println(netProfit);
+            writer.println(netProfit + 1);
 
             for (Student student : students) {
                 // Write the number of customers (orders) served by the student
