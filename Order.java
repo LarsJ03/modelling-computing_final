@@ -3,11 +3,10 @@ import java.util.List;
 public class Order {
     private int orderID;
     private int nodeID;
-    private int duration; // in seconds
-    private int profit; // Assuming profit is stored as an integer
-    private List<Integer> allowedStudents; // List of student IDs allowed to take this order
+    private int duration; 
+    private int profit; 
+    private List<Integer> allowedStudents; 
 
-    // Existing constructors and methods remain unchanged
 
     public Order(int orderID, int nodeID, int duration, int profit, List<Integer> allowedStudents) {
         this.orderID = orderID;
