@@ -6,8 +6,8 @@ import java.util.Scanner;
 import java.io.FileNotFoundException;
 
 public class DataReader {
+    // This class was written using the provided code snippets as a reference and ChatGPT for debugging. 
     public static int[][] readDrivingTimesFile() throws FileNotFoundException {
-        // Parse driving times
         Scanner reader = new Scanner(new File("drivingtimes.txt"));
         int[][] drivingTime = new int[1099][1099]; 
         for(int i = 0; i < 1099; i++)
@@ -22,18 +22,18 @@ public class DataReader {
         Scanner reader = new Scanner(new File("orders.txt"));
         HashMap<Integer, Order> orders = new HashMap<>();
 
-        reader.nextLine(); // Skip the header
+        reader.nextLine(); 
         while (reader.hasNextLine()) {
             String[] orderData = reader.nextLine().split("\t");
             int orderID = Integer.parseInt(orderData[0].trim());
             int nodeID = Integer.parseInt(orderData[2].trim());
-            int duration = Integer.parseInt(orderData[5].trim()) * 60; // Convert to seconds
-            int profit = Integer.parseInt(orderData[6].trim()); // Assuming profit doesn't need conversion
+            int duration = Integer.parseInt(orderData[5].trim()) * 60; 
+            int profit = Integer.parseInt(orderData[6].trim());
 
             List<Integer> allowedStudents = new ArrayList<>();
-            for (int j = 0; j < 20; j++) { // Assuming a fixed number of students for simplicity
+            for (int j = 0; j < 20; j++) { 
                 if (orderData[7 + j].equals("1")) {
-                    allowedStudents.add(j); // Assuming student IDs are simply their index for simplicity
+                    allowedStudents.add(j); 
                     orders.put(orderID, new Order(orderID, nodeID, duration, profit, allowedStudents));
                 }
             }
